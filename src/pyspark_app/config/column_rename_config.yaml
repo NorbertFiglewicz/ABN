@@ -1,0 +1,7 @@
+renamed_columns:
+  - original_name: id
+    new_name: client_identifier
+  - original_name: btc_a
+    new_name: bitcoin_address
+  - original_name: cc_t
+    new_name: credit_card_type
