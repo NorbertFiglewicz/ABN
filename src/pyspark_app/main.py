@@ -1,3 +1,35 @@
+"""
+Module: data_processor.py
+
+This module defines a DataProcessor class responsible for processing client and financial data using PySpark.
+
+Classes:
+    - DataProcessor: Main class for processing data.
+
+Functions:
+    - get_project_root: Get the root directory of the project.
+    - get_config_path: Get the absolute path to a configuration file.
+    - get_logs_path: Get the absolute path to a log file.
+    - load_column_selection_config: Load column selection configuration from YAML file.
+    - filter_data: Filter data based on specified conditions.
+    - load_column_rename_config: Load column renaming configuration from YAML file.
+    - rename_columns: Rename columns in the DataFrame based on the configuration file.
+    - join_datasets: Join client and financial datasets without explicit column renaming.
+    - create_spark_session: Create a Spark session.
+    - setup_logging: Set up logging configuration based on a YAML file.
+    - read_csv_file: Read a CSV file into a Spark DataFrame and select specific columns.
+    - save_to_file: Save DataFrame to a CSV file.
+    - process_data: Process client and financial data and perform filtering, joining, and renaming.
+    - main: Main entry point for the script.
+
+Usage:
+    - Instantiate DataProcessor class and call the main method to execute the data processing pipeline.
+
+Example:
+    processor = DataProcessor()
+    processor.main()
+"""
+
 import os
 import argparse
 import logging
@@ -5,38 +37,83 @@ from logging.handlers import RotatingFileHandler
 import time
 import yaml
 from pyspark.sql import SparkSession
-from pyspark.sql import DataFrame
 from pyspark.sql.utils import AnalysisException
-
+from pyspark.sql import DataFrame
 
 class DataProcessor:
+    """
+    DataProcessor class for processing client and financial data.
+
+    Attributes:
+        logger: Logger instance for logging.
+    """
+
     def __init__(self):
+        """Initialize DataProcessor instance."""
         self.logger = self.setup_logging()
 
     def get_project_root(self):
-        """Get the root directory of the project."""
+        """
+        Get the root directory of the project.
+
+        Returns:
+            str: The absolute path to the project root directory.
+        """
         return os.path.dirname(os.path.abspath(__file__))
 
     def get_config_path(self, config_file):
-        """Get the absolute path to a configuration file."""
+        """
+        Get the absolute path to a configuration file.
+
+        Args:
+            config_file (str): The name of the configuration file.
+
+        Returns:
+            str: The absolute path to the configuration file.
+        """
         return os.path.join(self.get_project_root(), 'config', config_file)
 
     def get_logs_path(self, log_file):
-        """Get the absolute path to a log file."""
+        """
+        Get the absolute path to a log file.
+
+        Args:
+            log_file (str): The name of the log file.
+
+        Returns:
+            str: The absolute path to the log file.
+        """
         logs_folder_path = os.path.join(self.get_project_root(), 'logs')
         if not os.path.exists(logs_folder_path):
             os.makedirs(logs_folder_path)
         return os.path.join(logs_folder_path, log_file)
 
     def load_column_selection_config(self):
-        """Load column selection configuration from YAML file."""
+        """
+        Load column selection configuration from YAML file.
+
+        Returns:
+            dict: The loaded configuration from the YAML file.
+        """
         config_path = self.get_config_path('column_selection_config.yaml')
         with open(config_path, 'r') as config_file:
             config = yaml.safe_load(config_file)
         return config
 
     def filter_data(self, clients_df, countries):
-        """Filter data based on specified conditions."""
+        """
+        Filter data based on specified conditions.
+
+        Args:
+            clients_df (DataFrame): The DataFrame to be filtered.
+            countries (list): List of country names for filtering.
+
+        Returns:
+            DataFrame: The filtered DataFrame.
+
+        Raises:
+            AnalysisException: If a Spark AnalysisException occurs during filtering.
+        """
         try:
             self.logger.info("Filtering data...")
             result_data = clients_df.filter(clients_df.country.isin(countries))
@@ -49,14 +126,27 @@ class DataProcessor:
             raise AnalysisException(f"Spark AnalysisException in filter_data: {str(ae)}")
 
     def load_column_rename_config(self):
-        """Load column renaming configuration from YAML file."""
+        """
+        Load column renaming configuration from YAML file.
+
+        Returns:
+            dict: The loaded configuration from the YAML file.
+        """
         config_path = self.get_config_path('column_rename_config.yaml')
         with open(config_path, 'r') as config_file:
             config = yaml.safe_load(config_file)
         return config
 
     def rename_columns(self, data_df):
-        """Rename columns in the DataFrame based on the configuration file."""
+        """
+        Rename columns in the DataFrame based on the configuration file.
+
+        Args:
+            data_df (DataFrame): The DataFrame to be processed.
+
+        Returns:
+            DataFrame: The DataFrame with renamed columns.
+        """
         self.logger.info("Renaming columns...")
         column_rename_config = self.load_column_rename_config()
 
@@ -71,7 +161,19 @@ class DataProcessor:
         return data_df
 
     def join_datasets(self, clients_df, financials_df):
-        """Join client and financial datasets without explicit column renaming."""
+        """
+        Join client and financial datasets without explicit column renaming.
+
+        Args:
+            clients_df (DataFrame): The client DataFrame.
+            financials_df (DataFrame): The financial DataFrame.
+
+        Returns:
+            DataFrame: The joined DataFrame.
+
+        Raises:
+            AnalysisException: If a Spark AnalysisException occurs during joining.
+        """
         try:
             self.logger.info("Joining datasets...")
             result_data = clients_df.join(financials_df, clients_df.id == financials_df.id).drop(financials_df.id)
@@ -84,12 +186,25 @@ class DataProcessor:
             raise AnalysisException(f"Spark AnalysisException in join_datasets: {str(ae)}")
 
     def create_spark_session(self, app_name="DataProcessor"):
-        """Create a Spark session."""
+        """
+        Create a Spark session.
+
+        Args:
+            app_name (str): The name of the Spark application.
+
+        Returns:
+            SparkSession: The Spark session instance.
+        """
         self.logger.info("Creating Spark session...")
         return SparkSession.builder.appName(app_name).getOrCreate()
 
     def setup_logging(self):
-        """Set up logging configuration based on a YAML file."""
+        """
+        Set up logging configuration based on a YAML file.
+
+        Returns:
+            Logger: The configured Logger instance.
+        """
         logging_config_path = self.get_config_path('logging_config.yaml')
         with open(logging_config_path, 'r') as config_file:
             config = yaml.safe_load(config_file)
@@ -126,7 +241,20 @@ class DataProcessor:
         return logger
 
     def read_csv_file(self, file_path, description, selected_columns=None):
-        """Read a CSV file into a Spark DataFrame and select specific columns."""
+        """
+        Read a CSV file into a Spark DataFrame and select specific columns.
+
+        Args:
+            file_path (str): The path to the CSV file.
+            description (str): A description of the data being read.
+            selected_columns (list): List of column names to select.
+
+        Returns:
+            DataFrame: The Spark DataFrame.
+
+        Raises:
+            Exception: If an error occurs during file reading.
+        """
         try:
             self.logger.info(f"Reading {description} file...")
             
@@ -151,7 +279,16 @@ class DataProcessor:
             raise Exception(error_message)
 
     def save_to_file(self, data_df, file_path):
-        """Save DataFrame to a CSV file."""
+        """
+        Save DataFrame to a CSV file.
+
+        Args:
+            data_df (DataFrame): The DataFrame to be saved.
+            file_path (str): The path to save the CSV file.
+
+        Raises:
+            Exception: If an error occurs during file saving.
+        """
         try:
             self.logger.info(f"Saving data to {file_path}...")
             data_df_pandas = data_df.toPandas()
@@ -163,7 +300,18 @@ class DataProcessor:
             raise Exception(error_message)
 
     def process_data(self, clients_file, financials_file, countries):
-        """Process client and financial data and perform filtering, joining, and renaming."""
+        """
+        Process client and financial data and perform filtering, joining, and renaming.
+
+        Args:
+            clients_file (str): Path to the clients dataset file.
+            financials_file (str): Path to the financials dataset file.
+            countries (list): List of countries to filter.
+
+        Raises:
+            AnalysisException: If a Spark AnalysisException occurs.
+            Exception: If an unexpected error occurs.
+        """
         try:
             spark = self.create_spark_session()
             column_selection_config = self.load_column_selection_config()
@@ -186,7 +334,14 @@ class DataProcessor:
             raise Exception(f"Unexpected error: {str(e)}")
 
     def main(self):
-        """Main entry point for the script."""
+        """
+        Main entry point for the script.
+
+        Parses command-line arguments and processes client and financial data.
+
+        Usage:
+            python data_processor.py --clients_file <path> --financials_file <path> [--countries <country_list>]
+        """
         print("Start")
         print(__file__)
 
@@ -200,7 +355,6 @@ class DataProcessor:
         countries_to_filter = args.countries if args.countries else []
 
         self.process_data(args.clients_file, args.financials_file, countries_to_filter)
-
 
 if __name__ == "__main__":
     processor = DataProcessor()
