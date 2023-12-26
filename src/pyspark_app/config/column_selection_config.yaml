@@ -1,0 +1,9 @@
+clients_columns:
+  - id
+  - email
+  - country
+
+financials_columns:
+  - id
+  - btc_a
+  - cc_t

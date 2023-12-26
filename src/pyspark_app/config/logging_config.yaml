@@ -1,0 +1,7 @@
+logs_path: logs\BitcoinTrading.log
+logs_formatter: '%(asctime)s BitcoinTrading [%(process)d]: [%(levelname)s] %(message)s'
+time_formatter: '%Y-%m-%d_%H:%M:%S'
+file_handler:
+  mode: 'a'
+  max_bytes: 3000
+  backup_count: 5
